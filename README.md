@@ -1,6 +1,6 @@
-**# Data Analyst Technical Assessment**
+# Data Analyst Technical Assessment
 
-**## Exercise One: SQL Refactor**
+## Exercise One: SQL Refactor
 ### Refactoring Explained Step by Step
 ### Step 1: Fix CTE Structure and Format
 
