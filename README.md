@@ -19,7 +19,7 @@ group by 1,2,3)
 
 **Refactored query:**
 ```sql
--- Step 1: Find the most recent FEC filing IDs for ActBlue in Q1 2020
+-- Step 1: Find the most recent FEC report ID for ActBlue in Q1 2020
 WITH most_recent_filing_id AS (
    SELECT 
       filer_committee_id_number,
@@ -117,3 +117,27 @@ contribution_data AS (
 * I assumed that the RANDOM() clause is deliberate and the purpose is to randomize data for the technical assessment, but it may be inefficient for large datasets and can consume massive resources
 * The LIMIT is set to 1.6 million rows, this seems very specific and unusually large. As mentioned before, randomizing such a large number of entries will be resource-intensive. I would verify with the team if this is necessary.
 * There are two fields for monetary values (sa.contribution_amount and sa.contribution_aggregate) that are cast to text, which makes no sense. The prompt clearly stated: "All of the where clauses, and table sources are correct and don't need to be updated." For this reason I left it as is. I would verify this with the owner of the query to double-check.
+* I would suggest changing the field 'sa.contribution_purpose_descrip' to sa.contribution_purpose_description' for consistency reasons
+
+### Step 3: CTE Formatting
+
+**Original query:**
+```sql
+), FEC_Committee_Data_2020 as (
+select * from fec_committees where bg_cycle=2020
+)
+```
+**Refactored query:**
+```sql
+-- Step 3: Load FEC committee data for 2020 election cycle
+fec_committee_data_2020 AS (
+   SELECT *
+   FROM fec_committees
+   WHERE bg_cycle = 2020
+),
+```
+**Changes made:**
+* Added a comment explaining the purpose of the CTE
+* Used proper indentation and capitalized SQL keywords to make the structure clearer
+* Lowercased CTE name for consistency with snake_case convention
+* Added a comma after the CTE for consistency with multiple CTEs
