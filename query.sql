@@ -1,4 +1,4 @@
--- Step 1: Find the most recent FEC filing IDs for ActBlue in Q1 2020
+-- Step 1: Find the most recent FEC report ID for ActBlue in Q1 2020
 WITH most_recent_filing_id AS (
    SELECT 
       filer_committee_id_number,
@@ -40,10 +40,12 @@ contribution_data AS (
    ORDER BY RANDOM() -- Note: Check if this step is necessary
    LIMIT 1600000 -- Note: This is an unusually large limit, verify if needed
 ), 
-FEC_Committee_Data_2020 AS
-  (SELECT *
+-- Step 3: Load FEC committee data for 2020 election cycle
+fec_committee_data_2020 AS (
+   SELECT *
    FROM fec_committees
-   WHERE bg_cycle=2020)
+   WHERE bg_cycle = 2020
+),
 SELECT cmte_nm ,
        sum(CASE
                WHEN instate=TRUE THEN total
