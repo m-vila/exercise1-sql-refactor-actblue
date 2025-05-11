@@ -7,7 +7,7 @@ WITH most_recent_filing_id AS (
       MAX(fec_report_id) AS report_id
    FROM f3x_fecfile
    WHERE filer_committee_id_number='C00401224' -- ActBlue's FEC Committee ID
-     AND coverage_from_date BETWEEN '2020-01-01' AND '2020-03-31' -- 
+     AND coverage_from_date BETWEEN '2020-01-01' AND '2020-03-31' -- The date range captures Feb, Mar, Apr monthly reports for 2020 
    GROUP BY filer_committee_id_number,
             coverage_from_date,
             coverage_through_date
