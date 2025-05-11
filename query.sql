@@ -12,30 +12,35 @@ WITH most_recent_filing_id AS (
             coverage_from_date,
             coverage_through_date
 ),
-SELECT sa.fec_report_id,
-       sa.date_report_received,
-       sa.form_type,
-       sa.filer_committee_id_number,
-       sa.transaction_id,
-       sa.entity_type,
-       sa.contributor_last_name,
-       sa.contributor_first_name ,
-       sa.contributor_street_1,
-       sa.contributor_city,
-       sa.contributor_state,
-       sa.contributor_zip_code,
-       sa.contribution_date,
-       sa.contribution_amount::text,
-       sa.contribution_aggregate::text ,
-       sa.contribution_purpose_descrip,
-       sa.contributor_employer,
-       sa.contributor_occupation,
-       sa.memo_text_description
-FROM sa_fecfile sa
-JOIN lr ON sa.fec_report_id=lr.report_id
-WHERE upper(sa.form_type)='SA11AI'
-ORDER BY random()
-LIMIT 1600000), FEC_Committee_Data_2020 AS
+-- Step 2: Extract contribution data from ActBlue's most recent filings
+contribution_data AS ( 
+   SELECT 
+      sa.fec_report_id,
+      sa.date_report_received,
+      sa.form_type,
+      sa.filer_committee_id_number,
+      sa.transaction_id,
+      sa.entity_type,
+      sa.contributor_last_name,
+      sa.contributor_first_name ,
+      sa.contributor_street_1,
+      sa.contributor_city,
+      sa.contributor_state,
+      sa.contributor_zip_code,
+      sa.contribution_date,
+      sa.contribution_amount::TEXT, -- Note: Investigate why this is cast to TEXT
+      sa.contribution_aggregate::TEXT, -- Note: Investigate why this is cast to TEXT
+      sa.contribution_purpose_descrip,
+      sa.contributor_employer,
+      sa.contributor_occupation,
+      sa.memo_text_description
+   FROM sa_fecfile sa
+   JOIN most_recent_filing_id mrf ON sa.fec_report_id=mrf.report_id -- Note: Changed 'lr' to most_recent_filing_id based on context
+   WHERE UPPER(sa.form_type)='SA11AI' -- Individual contribution records to political committees
+   ORDER BY RANDOM() -- Note: Check if this step is necessary
+   LIMIT 1600000 -- Note: This is an unusually large limit, verify if needed
+), 
+FEC_Committee_Data_2020 AS
   (SELECT *
    FROM fec_committees
    WHERE bg_cycle=2020)
