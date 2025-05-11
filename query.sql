@@ -1,14 +1,17 @@
-WITH most_recent_filing_id AS
-  (SELECT filer_committee_id_number,
-          coverage_from_date,
-          coverage_through_date ,
-          max(fec_report_id) AS report_id
+-- Step 1: Find the most recent FEC filing IDs for ActBlue in Q1 2020
+WITH most_recent_filing_id AS (
+   SELECT 
+      filer_committee_id_number,
+      coverage_from_date,
+      coverage_through_date,
+      MAX(fec_report_id) AS report_id
    FROM f3x_fecfile
-   WHERE filer_committee_id_number='C00401224'
-     AND coverage_from_date BETWEEN '2020-01-01' AND '2020-03-31'
-   GROUP BY 1,
-            2,
-            3)
+   WHERE filer_committee_id_number='C00401224' -- ActBlue's FEC Committee ID
+     AND coverage_from_date BETWEEN '2020-01-01' AND '2020-03-31' -- 
+   GROUP BY filer_committee_id_number,
+            coverage_from_date,
+            coverage_through_date
+),
 SELECT sa.fec_report_id,
        sa.date_report_received,
        sa.form_type,
