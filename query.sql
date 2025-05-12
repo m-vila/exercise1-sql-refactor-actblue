@@ -12,8 +12,9 @@ WITH most_recent_filing_id AS (
             coverage_from_date,
             coverage_through_date
 ),
+
 -- Step 2: Extract contribution data from ActBlue's most recent filings
-contribution_data AS ( 
+ds_technical_112221 AS ( 
    SELECT 
       sa.fec_report_id,
       sa.date_report_received,
@@ -40,35 +41,39 @@ contribution_data AS (
    ORDER BY RANDOM() -- Note: Check if this step is necessary
    LIMIT 1600000 -- Note: This is an unusually large limit, verify if needed
 ), 
+
 -- Step 3: Load FEC committee data for 2020 election cycle
 fec_committee_data_2020 AS (
    SELECT *
    FROM fec_committees
    WHERE bg_cycle = 2020
 ),
-SELECT cmte_nm ,
-       sum(CASE
-               WHEN instate=TRUE THEN total
-           END) AS instate ,
-       sum(CASE
-               WHEN instate=FALSE THEN total
-           END) AS outofstate ,
-       sum(CASE
-               WHEN instate=TRUE THEN total
-           END)::numeric / sum(total)::numeric AS instate_pct
-FROM
-  (SELECT c.cmte_nm ,
-          c.cmte_st ,
-          b.contributor_state ,
-          c.cmte_st = b.contributor_state AS instate ,
-          b.total
-   FROM
-     (SELECT a.filer_committee_id_number ,
-             a.contributor_state ,
-             sum(a.contribution_aggregate) total
-      FROM DS_technical_112221 a
-      GROUP BY 1,
-               2) b ,
-        FEC_Committee_Data_2020 AS c)
-GROUP BY 1
-HAVING cmte_nm = 'ACTBLUE';
+
+-- Step 4: Total contributions data per committee and state
+contributions_by_state AS (
+    SELECT 
+        ds.filer_committee_id_number,
+        ds.contributor_state,
+        SUM(ds.contribution_aggregate::NUMERIC) AS total -- Note: This needs to be cast to NUMERIC to perform SUM
+    FROM ds_technical_112221 ds
+    GROUP BY ds.filer_committee_id_number, 
+             ds.contributor_state
+),
+
+SELECT cmte_nm
+    ,sum(case when instate=TRUE then total end) as instate
+    ,sum(case when instate=FALSE then total end) as outofstate
+    ,sum(case when instate=TRUE then total end)::numeric / sum(total)::numeric as instate_pct
+    
+from (
+SELECT c.cmte_nm
+    ,c.cmte_st
+    ,b.contributor_state
+    ,c.cmte_st = b.contributor_state as instate
+    ,b.total
+    
+from contributions_by_state b
+    ,fec_committee_data_2020 as c
+)
+group by 1
+having cmte_nm = 'ACTBLUE';
