@@ -2,6 +2,7 @@
 
 ## Exercise One: SQL Refactor
 ### Refactoring Explained Step by Step
+
 ### Step 1: Fix CTE Structure and Format
 
 **Original query:**
@@ -78,7 +79,7 @@ limit 1600000
 **Refactored query:**
 ```sql
 -- Step 2: Extract contribution data from ActBlue's most recent filings
-contribution_data AS ( 
+ds_technical_112221 AS ( 
    SELECT 
       sa.fec_report_id,
       sa.date_report_received,
@@ -109,15 +110,15 @@ contribution_data AS (
 **Changes made:**
 * Added a comment explaining the purpose of the CTE
 * Used proper indentation and capitalized SQL keywords to make the structure clearer
-* Wrapped section in a CTE named contribution_data
+* Wrapped section in a CTE named ds_technical_112221 for consistency with step 4
 * Changed undefined table reference 'lr' to 'mrf' for 'most_recent_filing_id' and added table alias 'mrf' for clarity
 * A quick Google search revealed that 'SA11AI' refers to a specific item type on FEC Form 3X, which is the standard report that federal political committees file with the FEC
 
 **Questions and Clarifications:**
 * I assumed that the RANDOM() clause is deliberate and the purpose is to randomize data for the technical assessment, but it may be inefficient for large datasets and can consume massive resources
 * The LIMIT is set to 1.6 million rows, this seems very specific and unusually large. As mentioned before, randomizing such a large number of entries will be resource-intensive. I would verify with the team if this is necessary.
-* There are two fields for monetary values (sa.contribution_amount and sa.contribution_aggregate) that are cast to text, which makes no sense. The prompt clearly stated: "All of the where clauses, and table sources are correct and don't need to be updated." For this reason I left it as is. I would verify this with the owner of the query to double-check.
-* I would suggest changing the field 'sa.contribution_purpose_descrip' to sa.contribution_purpose_description' for consistency reasons
+* There are two fields for monetary values (contribution_amount and contribution_aggregate) that are cast to text, which makes no sense. The prompt clearly stated: "All of the where clauses, and table sources are correct and don't need to be updated." For this reason I left it as is. I would verify this with the owner of the query to double-check.
+* I would suggest changing the field 'contribution_purpose_descrip' to 'contribution_purpose_description' for consistency reasons
 
 ### Step 3: CTE Formatting
 
@@ -127,6 +128,7 @@ contribution_data AS (
 select * from fec_committees where bg_cycle=2020
 )
 ```
+
 **Refactored query:**
 ```sql
 -- Step 3: Load FEC committee data for 2020 election cycle
@@ -141,3 +143,34 @@ fec_committee_data_2020 AS (
 * Used proper indentation and capitalized SQL keywords to make the structure clearer
 * Lowercased CTE name for consistency with snake_case convention
 * Added a comma after the CTE for consistency with multiple CTEs
+
+### Step 4: CTE Extraction for Modularity
+
+**Original query:**
+```sql
+from (SELECT a.filer_committee_id_number
+    ,a.contributor_state
+    ,sum(a.contribution_aggregate) total
+from DS_technical_112221 a
+group by 1,2) b
+
+```
+
+**Refactored query:**
+```sql
+-- Step 4: Total contributions data per committee and state
+contributions_by_state AS (
+    SELECT 
+        ds.filer_committee_id_number,
+        ds.contributor_state,
+        SUM(ds.contribution_aggregate::NUMERIC) AS total -- Note: This needs to be cast to NUMERIC to perform SUM
+    FROM ds_technical_112221 ds
+    GROUP BY ds.filer_committee_id_number, 
+             ds.contributor_state
+),
+```
+**Changes made:**
+* Added a comment explaining the purpose of the CTE
+* Used proper indentation and capitalized SQL keywords to make the structure clearer
+* Lowercased 'ds_technical_112221' name following snake_case convention
+* Casted 'contribution_aggregate' field to be able to perform the SUM function
