@@ -1,3 +1,8 @@
+/*
+Purpose: This query analyzes ActBlue's campaign contributions for Q1 2020,
+calculating the in-state versus out-of-state contribution totals and percentage.
+*/
+
 -- Step 1: Find the most recent FEC report ID for ActBlue in Q1 2020
 WITH most_recent_filing_id AS (
    SELECT 
@@ -7,13 +12,13 @@ WITH most_recent_filing_id AS (
       MAX(fec_report_id) AS report_id
    FROM f3x_fecfile
    WHERE filer_committee_id_number='C00401224' -- ActBlue's FEC Committee ID
-     AND coverage_from_date BETWEEN '2020-01-01' AND '2020-03-31' -- The date range captures Feb, Mar, Apr monthly reports for 2020 
+     AND coverage_from_date BETWEEN '2020-01-01' AND '2020-03-31' -- Q1 2020 
    GROUP BY filer_committee_id_number,
             coverage_from_date,
             coverage_through_date
 ),
 
--- Step 2: Extract contribution data from ActBlue's most recent filings
+-- Step 2: Extract contribution data from ActBlue's filings
 ds_technical_112221 AS ( 
    SELECT 
       sa.fec_report_id,
@@ -60,20 +65,29 @@ contributions_by_state AS (
              ds.contributor_state
 ),
 
-SELECT cmte_nm
-    ,sum(case when instate=TRUE then total end) as instate
-    ,sum(case when instate=FALSE then total end) as outofstate
-    ,sum(case when instate=TRUE then total end)::numeric / sum(total)::numeric as instate_pct
-    
-from (
-SELECT c.cmte_nm
-    ,c.cmte_st
-    ,b.contributor_state
-    ,c.cmte_st = b.contributor_state as instate
-    ,b.total
-    
-from contributions_by_state b
-    ,fec_committee_data_2020 as c
+-- Step 5: Calculate in-state vs out-of-state contributions
+joined_contributions AS (
+    SELECT
+        fc.cmte_nm,
+        fc.cmte_st,
+        cbs.contributor_state,
+        (fc.cmte_st = cbs.contributor_state) AS instate,
+        cbs.total
+    FROM contributions_by_state cbs
+    JOIN fec_committee_data_2020 fc
+        ON fc.cmte_id = cbs.filer_committee_id_number
 )
-group by 1
-having cmte_nm = 'ACTBLUE';
+
+-- Final Step: Calculate in-state vs out-of-state contribution totals and percentage
+SELECT
+    cmte_nm,
+    SUM(CASE WHEN instate THEN total ELSE 0 END) AS instate,
+    SUM(CASE WHEN NOT instate THEN total ELSE 0 END) AS outofstate,
+    ROUND(
+        SUM(CASE WHEN instate = TRUE THEN total ELSE 0 END)::NUMERIC / -- Calculate percentage with safeguard against division by zero
+        NULLIF(SUM(total)::NUMERIC, 0) * 100, 
+        2
+    ) AS instate_pct
+FROM joined_contributions
+WHERE cmte_nm = 'ACTBLUE'
+GROUP BY cmte_nm;
