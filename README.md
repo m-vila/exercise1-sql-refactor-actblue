@@ -100,7 +100,7 @@ WHERE cmte_nm = 'ACTBLUE'
 GROUP BY cmte_nm;
 ```
 
-### Refactoring Explained Step by Step
+## Refactoring Explained Step by Step
 ### Step 1: Fix CTE Structure and Format
 
 **Original Query:**
