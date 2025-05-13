@@ -1,7 +1,21 @@
 /*
 Purpose: This query analyzes ActBlue's campaign contributions for Q1 2020,
 calculating the in-state versus out-of-state contribution totals and percentage.
+
+Parameters:
+@filer_committee_id - Committee ID to analyze ('C00401224' for ActBlue)
+@start_date - Beginning of analysis period (default: '2020-01-01')
+@end_date - End of analysis period (default: '2020-03-31')
+@form_type - Form type to filter (default: 'SA11AI' for individual contributions)
+@committee_name - Committee name to filter in final results (default: 'ACTBLUE')
 */
+
+-- Define parameters with default values
+DECLARE @filer_committee_id VARCHAR(9) = 'C00401224'; -- ActBlue's FEC Committee ID
+DECLARE @start_date DATE = '2020-01-01';
+DECLARE @end_date DATE = '2020-03-31';
+DECLARE @form_type VARCHAR(10) = 'SA11AI'; -- Individual contribution records
+DECLARE @committee_name VARCHAR(100) = 'ACTBLUE'; -- Committee name
 
 -- Step 1: Find the most recent FEC report ID for ActBlue in Q1 2020
 WITH most_recent_filing_id AS (
@@ -11,8 +25,8 @@ WITH most_recent_filing_id AS (
       coverage_through_date,
       MAX(fec_report_id) AS report_id
    FROM f3x_fecfile
-   WHERE filer_committee_id_number='C00401224' -- ActBlue's FEC Committee ID
-     AND coverage_from_date BETWEEN '2020-01-01' AND '2020-03-31' -- Q1 2020 
+   WHERE filer_committee_id_number = @filer_committee_id -- ActBlue's FEC Committee ID
+     AND coverage_from_date BETWEEN @start_date AND @end_date -- Q1 2020 
    GROUP BY filer_committee_id_number,
             coverage_from_date,
             coverage_through_date
@@ -42,7 +56,7 @@ ds_technical_112221 AS (
       sa.memo_text_description
    FROM sa_fecfile sa
    JOIN most_recent_filing_id mrf ON sa.fec_report_id=mrf.report_id -- Note: Changed 'lr' to most_recent_filing_id based on context
-   WHERE UPPER(sa.form_type)='SA11AI' -- Individual contribution records to political committees
+   WHERE UPPER(sa.form_type) = @form_type 
    ORDER BY RANDOM() -- Note: Check if this step is necessary
    LIMIT 1600000 -- Note: This is an unusually large limit, verify if needed
 ), 
@@ -83,11 +97,11 @@ SELECT
     cmte_nm,
     SUM(CASE WHEN instate THEN total ELSE 0 END) AS instate,
     SUM(CASE WHEN NOT instate THEN total ELSE 0 END) AS outofstate,
-    ROUND(
-        SUM(CASE WHEN instate = TRUE THEN total ELSE 0 END)::NUMERIC / -- Calculate percentage with safeguard against division by zero
-        NULLIF(SUM(total)::NUMERIC, 0) * 100, 
-        2
+    COALESCE(
+        SUM(CASE WHEN instate = TRUE THEN total ELSE 0 END)::NUMERIC /
+        NULLIF(SUM(total)::NUMERIC, 0) * 100,
+        0
     ) AS instate_pct
 FROM joined_contributions
-WHERE cmte_nm = 'ACTBLUE'
+WHERE cmte_nm = @committee_name
 GROUP BY cmte_nm;
