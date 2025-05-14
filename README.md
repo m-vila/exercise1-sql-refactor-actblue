@@ -11,10 +11,10 @@ calculating the in-state versus out-of-state contribution totals and percentage.
 
 Parameters:
 @filer_committee_id - Committee ID to analyze ('C00401224' for ActBlue)
-@start_date - Beginning of analysis period (default: '2020-01-01')
-@end_date - End of analysis period (default: '2020-03-31')
-@form_type - Form type to filter (default: 'SA11AI' for individual contributions)
-@committee_name - Committee name to filter in final results (default: 'ACTBLUE')
+@start_date - Beginning of analysis period ('2020-01-01')
+@end_date - End of analysis period ('2020-03-31')
+@form_type - Form type to filter ('SA11AI' for individual contributions)
+@committee_name - Committee name to filter in final results ('ACTBLUE')
 */
 
 -- Define parameters with default values
